@@ -14,8 +14,8 @@ PERMISOS = ["https://www.googleapis.com/auth/youtube.upload"]
 @st.cache_resource
 def almacen():
     # Memoria del servidor: sobrevive a la vuelta de Google.
-    # "estados" guarda las comprobaciones pendientes; "credenciales" guarda el permiso.
-    return {"estados": set(), "credenciales": None}
+    # "estados" guarda, para cada comprobación pendiente, su código secreto (PKCE).
+    return {"estados": {}, "credenciales": None}
 
 
 def crear_flow(state=None):
@@ -39,8 +39,9 @@ st.title("Mi página de vídeos")
 if "code" in st.query_params and db["credenciales"] is None:
     estado = st.query_params.get("state", "")
     if estado in db["estados"]:
-        db["estados"].discard(estado)
         flow = crear_flow(state=estado)
+        # Recuperamos el código secreto que se generó al crear el botón
+        flow.code_verifier = db["estados"].pop(estado)
         flow.fetch_token(code=st.query_params["code"])
         db["credenciales"] = flow.credentials
     st.query_params.clear()
@@ -50,7 +51,8 @@ if "code" in st.query_params and db["credenciales"] is None:
 if db["credenciales"] is None:
     flow = crear_flow()
     url, estado = flow.authorization_url(access_type="offline", prompt="consent")
-    db["estados"].add(estado)
+    # Guardamos el código secreto junto al estado para usarlo al volver
+    db["estados"][estado] = flow.code_verifier
     st.write("Conecta tu canal de YouTube para subir vídeos.")
     st.link_button("Conectar con YouTube", url)
     st.stop()
