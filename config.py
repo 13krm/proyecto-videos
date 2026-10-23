@@ -1,4 +1,4 @@
-# Enlaces de subida de cada red social.
+# Enlaces de subida de cada red social, por perfil.
 # Si cambias una URL, solo tienes que editar este archivo.
 
 PERFILES = {
@@ -6,5 +6,10 @@ PERFILES = {
         "YouTube Shorts": "https://www.youtube.com/upload",
         "TikTok": "https://www.tiktok.com/creator-center/upload",
         "Instagram": "https://www.instagram.com/",
-    }
+    },
+    "Podcast": {
+        "YouTube Shorts": "https://www.youtube.com/upload",
+        "TikTok": "https://www.tiktok.com/creator-center/upload",
+        "Instagram": "https://www.instagram.com/",
+    },
 }
