@@ -3,8 +3,8 @@
 
 PERFILES = {
     "Youtubers": {
-        "YouTube Shorts": "https://studio.youtube.com/",
-        "TikTok": "https://www.tiktok.com/upload",
+        "YouTube Shorts": "https://www.youtube.com/upload",
+        "TikTok": "https://www.tiktok.com/creator-center/upload",
         "Instagram": "https://www.instagram.com/",
     }
 }
