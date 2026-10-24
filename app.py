@@ -159,17 +159,17 @@ with pestana_api:
             "Elige un vídeo MP4 para TikTok", type=["mp4"], key=f"video_tt_{perfil}"
         )
 
-        if video_tiktok is not None and st.button("Enviar a borradores de TikTok", key=f"subir_tt_{perfil}"):
+        if video_tiktok is not None and st.button("Publicar en TikTok (privado)", key=f"subir_tt_{perfil}"):
             try:
-                with st.spinner("Enviando a TikTok..."):
+                with st.spinner("Publicando en TikTok..."):
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
                         tmp.write(video_tiktok.getbuffer())
                         ruta_tt = tmp.name
-                    id_publicacion = tiktok_api.subir_video_borrador(token_tiktok, ruta_tt)
+                    id_publicacion = tiktok_api.subir_video_publicado(token_tiktok, ruta_tt, "Mi vídeo")
                     os.remove(ruta_tt)
-                st.success(f"Vídeo enviado a borradores de TikTok. ID: {id_publicacion}. Revísalo desde la app de TikTok.")
+                st.success(f"Vídeo enviado a TikTok como privado. ID: {id_publicacion}")
             except Exception as error:
-                st.error(f"No se pudo enviar a TikTok: {error}")
+                st.error(f"No se pudo publicar en TikTok: {error}")
 
     st.subheader("Instagram")
     st.info("Pendiente: necesita cuenta profesional y configuración de Meta.")
