@@ -5,18 +5,17 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from config import PERFILES
+import tiktok_api
 
-# Dirección exacta de la web publicada (debe coincidir con la de Google)
+# Dirección exacta de la web publicada (debe coincidir con la de Google y TikTok)
 URL_APP = "https://proyectosubirvideos.streamlit.app/"
 PERMISOS = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
 @st.cache_resource
 def almacen():
-    # Memoria del servidor: sobrevive a la vuelta de Google.
-    # "estados": estado -> (código secreto, perfil que se está conectando)
-    # "credenciales": perfil -> permiso de YouTube de ese perfil
-    return {"estados": {}, "credenciales": {}}
+    # Memoria del servidor: sobrevive a la vuelta de Google y TikTok.
+    return {"estados": {}, "credenciales": {}, "tiktok_estados": {}, "tiktok_tokens": {}}
 
 
 def crear_flow(state=None):
@@ -34,7 +33,28 @@ def crear_flow(state=None):
 
 
 db = almacen()
+db.setdefault("tiktok_estados", {})
+db.setdefault("tiktok_tokens", {})
 st.title("Mi página de vídeos")
+
+# Si TikTok nos devuelve aquí, canjeamos el código por un token
+if "code" in st.query_params and st.query_params.get("state", "") in db["tiktok_estados"]:
+    estado = st.query_params["state"]
+    verificador, perfil_tiktok = db["tiktok_estados"].pop(estado)
+    try:
+        token = tiktok_api.canjear_codigo(
+            st.secrets["tiktok"]["client_key"],
+            st.secrets["tiktok"]["client_secret"],
+            st.query_params["code"],
+            URL_APP,
+            verificador,
+        )
+        db["tiktok_tokens"][perfil_tiktok] = token
+    except Exception as error:
+        st.session_state["aviso_tiktok"] = f"No se pudo conectar TikTok: {error}"
+    st.query_params.clear()
+    st.query_params["perfil"] = perfil_tiktok
+    st.rerun()
 
 # Si Google nos devuelve aquí, comprobamos el estado y guardamos el permiso del perfil
 if "code" in st.query_params:
@@ -117,6 +137,39 @@ with pestana_api:
                 st.error(f"No se pudo subir el vídeo: {error}")
 
     st.subheader("TikTok")
-    st.info("Pendiente: necesita que TikTok apruebe la app (auditoría).")
+    if "aviso_tiktok" in st.session_state:
+        st.error(st.session_state.pop("aviso_tiktok"))
+
+    token_tiktok = db["tiktok_tokens"].get(perfil)
+
+    if token_tiktok is None:
+        # Todavía no hay cuenta de TikTok conectada para este perfil
+        url_tiktok, estado_tiktok, verificador_tiktok = tiktok_api.crear_url_conexion(
+            st.secrets["tiktok"]["client_key"], URL_APP
+        )
+        db["tiktok_estados"][estado_tiktok] = (verificador_tiktok, perfil)
+        st.write(f"Conecta la cuenta de TikTok de {perfil}.")
+        st.link_button("Conectar con TikTok", url_tiktok)
+    else:
+        if st.button("Desconectar TikTok", key=f"desconectar_tt_{perfil}"):
+            db["tiktok_tokens"].pop(perfil, None)
+            st.rerun()
+
+        video_tiktok = st.file_uploader(
+            "Elige un vídeo MP4 para TikTok", type=["mp4"], key=f"video_tt_{perfil}"
+        )
+
+        if video_tiktok is not None and st.button("Enviar a borradores de TikTok", key=f"subir_tt_{perfil}"):
+            try:
+                with st.spinner("Enviando a TikTok..."):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+                        tmp.write(video_tiktok.getbuffer())
+                        ruta_tt = tmp.name
+                    id_publicacion = tiktok_api.subir_video_borrador(token_tiktok, ruta_tt)
+                    os.remove(ruta_tt)
+                st.success(f"Vídeo enviado a borradores de TikTok. ID: {id_publicacion}. Revísalo desde la app de TikTok.")
+            except Exception as error:
+                st.error(f"No se pudo enviar a TikTok: {error}")
+
     st.subheader("Instagram")
     st.info("Pendiente: necesita cuenta profesional y configuración de Meta.")
