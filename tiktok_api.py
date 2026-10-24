@@ -74,7 +74,9 @@ def subir_video_publicado(token, ruta_video, titulo):
         },
     }
     respuesta = requests.post(URL_PUBLICAR, headers=cabeceras, json=cuerpo, timeout=60)
-    respuesta.raise_for_status()
+    if respuesta.status_code != 200:
+        # Muestra el motivo exacto que devuelve TikTok
+        raise Exception(f"{respuesta.status_code}: {respuesta.text}")
     inicio = respuesta.json()
     if inicio.get("error", {}).get("code") != "ok":
         raise Exception(f"TikTok rechazó la publicación: {inicio}")
