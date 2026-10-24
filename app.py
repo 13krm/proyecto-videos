@@ -156,13 +156,14 @@ with pestana_api:
             st.rerun()
 
         video_tiktok = st.file_uploader(
-            "Elige un vídeo MP4 para TikTok", type=["mp4"], key=f"video_tt_{perfil}"
+            "Elige un vídeo MP4 o MOV para TikTok", type=["mp4", "mov"], key=f"video_tt_{perfil}"
         )
 
         if video_tiktok is not None and st.button("Publicar en TikTok (privado)", key=f"subir_tt_{perfil}"):
             try:
                 with st.spinner("Publicando en TikTok..."):
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+                    extension_tt = os.path.splitext(video_tiktok.name)[1].lower()
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=extension_tt) as tmp:
                         tmp.write(video_tiktok.getbuffer())
                         ruta_tt = tmp.name
                     id_publicacion = tiktok_api.subir_video_publicado(token_tiktok, ruta_tt, "Mi vídeo")

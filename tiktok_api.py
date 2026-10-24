@@ -53,6 +53,7 @@ def canjear_codigo(client_key, client_secret, codigo, url_vuelta, verificador):
 def subir_video_publicado(token, ruta_video, titulo):
     # Publica directamente. Sin app aprobada, TikTok solo permite SELF_ONLY (privado).
     tamano = os.path.getsize(ruta_video)
+    tipo_video = "video/quicktime" if ruta_video.lower().endswith(".mov") else "video/mp4"
     cabeceras = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json; charset=UTF-8",
@@ -83,7 +84,7 @@ def subir_video_publicado(token, ruta_video, titulo):
         contenido = archivo.read()
 
     cabeceras_envio = {
-        "Content-Type": "video/mp4",
+        "Content-Type": tipo_video,
         "Content-Length": str(tamano),
         "Content-Range": f"bytes 0-{tamano - 1}/{tamano}",
     }
