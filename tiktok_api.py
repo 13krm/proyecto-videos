@@ -8,8 +8,8 @@ import requests
 
 URL_AUTORIZAR = "https://www.tiktok.com/v2/auth/authorize/"
 URL_TOKEN = "https://open.tiktokapis.com/v2/oauth/token/"
-URL_INICIAR_SUBIDA = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
-PERMISOS = "user.info.basic,video.upload"
+URL_PUBLICAR = "https://open.tiktokapis.com/v2/post/publish/video/init/"
+PERMISOS = "user.info.basic,video.upload,video.publish"
 
 
 def crear_url_conexion(client_key, url_vuelta):
@@ -50,26 +50,33 @@ def canjear_codigo(client_key, client_secret, codigo, url_vuelta, verificador):
     return resultado["access_token"]
 
 
-def subir_video_borrador(token, ruta_video):
-    # Solo funciona con vídeos MP4 de hasta 64 MB, en una sola parte.
+def subir_video_publicado(token, ruta_video, titulo):
+    # Publica directamente. Sin app aprobada, TikTok solo permite SELF_ONLY (privado).
     tamano = os.path.getsize(ruta_video)
     cabeceras = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json; charset=UTF-8",
     }
     cuerpo = {
+        "post_info": {
+            "title": titulo[:150],
+            "privacy_level": "SELF_ONLY",
+            "disable_duet": True,
+            "disable_comment": False,
+            "disable_stitch": True,
+        },
         "source_info": {
             "source": "FILE_UPLOAD",
             "video_size": tamano,
             "chunk_size": tamano,
             "total_chunk_count": 1,
-        }
+        },
     }
-    respuesta = requests.post(URL_INICIAR_SUBIDA, headers=cabeceras, json=cuerpo, timeout=60)
+    respuesta = requests.post(URL_PUBLICAR, headers=cabeceras, json=cuerpo, timeout=60)
     respuesta.raise_for_status()
     inicio = respuesta.json()
     if inicio.get("error", {}).get("code") != "ok":
-        raise Exception(f"TikTok rechazó la subida: {inicio}")
+        raise Exception(f"TikTok rechazó la publicación: {inicio}")
 
     datos = inicio["data"]
     with open(ruta_video, "rb") as archivo:
