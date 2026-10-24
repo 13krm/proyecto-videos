@@ -119,11 +119,13 @@ with pestana_api:
                         tmp.write(video.getbuffer())
                         ruta = tmp.name
 
+                    # #Shorts en el título ayuda a que YouTube lo clasifique como Short
+                    titulo_final = titulo if "#Shorts" in titulo else titulo + " #Shorts"
                     youtube = build("youtube", "v3", credentials=credenciales)
                     cuerpo = {
-                        "snippet": {"title": titulo, "categoryId": "22"},
-                        # Privado hasta que el proyecto pase la auditoría de Google
-                        "status": {"privacyStatus": "private"},
+                        "snippet": {"title": titulo_final, "categoryId": "22"},
+                        # Sin auditoría de Google, YouTube lo mantendrá privado aunque se pida público
+                        "status": {"privacyStatus": "public"},
                     }
                     peticion = youtube.videos().insert(
                         part="snippet,status",
@@ -132,7 +134,7 @@ with pestana_api:
                     )
                     respuesta = peticion.execute()
                     os.remove(ruta)
-                st.success(f"Vídeo subido como privado. ID: {respuesta['id']}")
+                st.success(f"Vídeo subido. ID: {respuesta['id']}")
             except Exception as error:
                 st.error(f"No se pudo subir el vídeo: {error}")
 
@@ -159,18 +161,18 @@ with pestana_api:
             "Elige un vídeo MP4 o MOV para TikTok", type=["mp4", "mov"], key=f"video_tt_{perfil}"
         )
 
-        if video_tiktok is not None and st.button("Publicar en TikTok (privado)", key=f"subir_tt_{perfil}"):
+        if video_tiktok is not None and st.button("Enviar a borradores de TikTok", key=f"subir_tt_{perfil}"):
             try:
-                with st.spinner("Publicando en TikTok..."):
+                with st.spinner("Enviando a TikTok..."):
                     extension_tt = os.path.splitext(video_tiktok.name)[1].lower()
                     with tempfile.NamedTemporaryFile(delete=False, suffix=extension_tt) as tmp:
                         tmp.write(video_tiktok.getbuffer())
                         ruta_tt = tmp.name
-                    id_publicacion = tiktok_api.subir_video_publicado(token_tiktok, ruta_tt, "Mi vídeo")
+                    id_publicacion = tiktok_api.subir_video_borrador(token_tiktok, ruta_tt)
                     os.remove(ruta_tt)
-                st.success(f"Vídeo enviado a TikTok como privado. ID: {id_publicacion}")
+                st.success(f"Enviado a borradores de TikTok. ID: {id_publicacion}. Revísalo desde la app de TikTok.")
             except Exception as error:
-                st.error(f"No se pudo publicar en TikTok: {error}")
+                st.error(f"No se pudo enviar a TikTok: {error}")
 
     st.subheader("Instagram")
     st.info("Pendiente: necesita cuenta profesional y configuración de Meta.")

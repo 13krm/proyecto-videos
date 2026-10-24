@@ -8,8 +8,8 @@ import requests
 
 URL_AUTORIZAR = "https://www.tiktok.com/v2/auth/authorize/"
 URL_TOKEN = "https://open.tiktokapis.com/v2/oauth/token/"
-URL_PUBLICAR = "https://open.tiktokapis.com/v2/post/publish/video/init/"
-PERMISOS = "user.info.basic,video.upload,video.publish"
+URL_BORRADOR = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
+PERMISOS = "user.info.basic,video.upload"
 
 
 def crear_url_conexion(client_key, url_vuelta):
@@ -50,8 +50,8 @@ def canjear_codigo(client_key, client_secret, codigo, url_vuelta, verificador):
     return resultado["access_token"]
 
 
-def subir_video_publicado(token, ruta_video, titulo):
-    # Publica directamente. Sin app aprobada, TikTok solo permite SELF_ONLY (privado).
+def subir_video_borrador(token, ruta_video):
+    # Envía el vídeo a la bandeja de borradores de la cuenta. Se publica desde la app de TikTok.
     tamano = os.path.getsize(ruta_video)
     tipo_video = "video/quicktime" if ruta_video.lower().endswith(".mov") else "video/mp4"
     cabeceras = {
@@ -59,27 +59,19 @@ def subir_video_publicado(token, ruta_video, titulo):
         "Content-Type": "application/json; charset=UTF-8",
     }
     cuerpo = {
-        "post_info": {
-            "title": titulo[:150],
-            "privacy_level": "SELF_ONLY",
-            "disable_duet": True,
-            "disable_comment": False,
-            "disable_stitch": True,
-        },
         "source_info": {
             "source": "FILE_UPLOAD",
             "video_size": tamano,
             "chunk_size": tamano,
             "total_chunk_count": 1,
-        },
+        }
     }
-    respuesta = requests.post(URL_PUBLICAR, headers=cabeceras, json=cuerpo, timeout=60)
+    respuesta = requests.post(URL_BORRADOR, headers=cabeceras, json=cuerpo, timeout=60)
     if respuesta.status_code != 200:
-        # Muestra el motivo exacto que devuelve TikTok
         raise Exception(f"{respuesta.status_code}: {respuesta.text}")
     inicio = respuesta.json()
     if inicio.get("error", {}).get("code") != "ok":
-        raise Exception(f"TikTok rechazó la publicación: {inicio}")
+        raise Exception(f"TikTok rechazó el borrador: {inicio}")
 
     datos = inicio["data"]
     with open(ruta_video, "rb") as archivo:
